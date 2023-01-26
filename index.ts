@@ -1,11 +1,17 @@
 import Express from "express";
 import { PrismaClient } from "@prisma/client";
 import { validate, validationErrorMiddleware, planetSchema, PlanetData } from "./validation";
+import cors from "cors";
 
 const app = Express()
 const prisma = new PrismaClient()
 
 app.use(Express.json())
+
+const corsOptions = {
+  origin: "http://localhost:8080"
+}
+app.use(cors(corsOptions))
 
 app.get("/", async (req, res) => {
   const planets = await prisma.planets.findMany()
