@@ -16,6 +16,7 @@ model planets {
   description       String?
   diameter          Int
   moons             Int
+  photoFilename     String?             
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @default(now())
 }
