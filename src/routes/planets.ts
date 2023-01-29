@@ -1,27 +1,19 @@
-import Express from "express";
+import express, { Router } from "express";
+
 import { PrismaClient } from "@prisma/client";
-import { validate, validationErrorMiddleware, planetSchema, PlanetData } from "./validation";
-import cors from "cors";
-import { initMulterMiddleware } from "./lib/middleware/multer";
+import { validate, planetSchema, PlanetData } from "../../validation";
+import { initMulterMiddleware } from "../../lib/middleware/multer";
 
 const upload = initMulterMiddleware()
-
-const app = Express()
 const prisma = new PrismaClient()
+const router = Router()
 
-app.use(Express.json())
-
-const corsOptions = {
-  origin: "http://localhost:8080"
-}
-app.use(cors(corsOptions))
-
-app.get("/planets", async (req, res) => {
+router.get("/", async (req, res) => {
   const planets = await prisma.planets.findMany()
   res.json(planets)
 })
 
-app.get("/planets/:id", async (req, res) => {
+router.get("/:id", async (req, res) => {
   const planetID = req.params.id
   const planet = await prisma.planets.findUnique({
     where: {
@@ -32,7 +24,7 @@ app.get("/planets/:id", async (req, res) => {
   res.json(planet)
 })
 
-app.post("/planets", validate({ body: planetSchema }), async (req, res) => {
+router.post("/", validate({ body: planetSchema }), async (req, res) => {
   const body: PlanetData = req.body
   const planet = await prisma.planets.create({
     data: {...body}
@@ -40,7 +32,7 @@ app.post("/planets", validate({ body: planetSchema }), async (req, res) => {
   res.json(planet)
 })
 
-app.put("/planets/:id",async (req, res) => {
+router.put("/:id",async (req, res) => {
   const planetID = req.params.id
   const updatedData = req.body
 
@@ -52,7 +44,7 @@ app.put("/planets/:id",async (req, res) => {
   res.json(updatedPlanet)
 })
 
-app.delete("/planets/:id",async (req, res) => {
+router.delete("/:id",async (req, res) => {
   const planetID = +req.params.id
   const deletedPlanet = await prisma.planets.delete({
     where: {id: planetID}
@@ -61,7 +53,7 @@ app.delete("/planets/:id",async (req, res) => {
   res.json(deletedPlanet)
 })
 
-app.post("/planets/:id(\\d+)/photo", upload.single("photo"), async (req, res, next) => {
+router.post("/:id(\\d+)/photo", upload.single("photo"), async (req, res, next) => {
 
   if (!req.file) {
     res.status(400)
@@ -86,10 +78,7 @@ app.post("/planets/:id(\\d+)/photo", upload.single("photo"), async (req, res, ne
   }
 })
 
-app.use("/planets/photos", Express.static("uploads"))
+router.use("/photos", express.static("uploads"))
 
-app.use(validationErrorMiddleware)
 
-app.listen(3000, () => {
-  console.log("running")
-})
+export default router
