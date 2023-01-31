@@ -3,6 +3,7 @@ import express, { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import { validate, planetSchema, PlanetData } from "../../validation";
 import { initMulterMiddleware } from "../../lib/middleware/multer";
+import { checkAuthorization } from "../../lib/middleware/passport";
 
 const upload = initMulterMiddleware()
 const prisma = new PrismaClient()
@@ -24,27 +25,30 @@ router.get("/:id", async (req, res) => {
   res.json(planet)
 })
 
-router.post("/", validate({ body: planetSchema }), async (req, res) => {
+router.post("/", checkAuthorization, validate({ body: planetSchema }), async (req, res) => {
   const body: PlanetData = req.body
+  const username = req.user?.username as string
+
   const planet = await prisma.planets.create({
-    data: {...body}
+    data: {...body, createdBy: username, updatedBy: username}
   })
   res.json(planet)
 })
 
-router.put("/:id",async (req, res) => {
+router.put("/:id", checkAuthorization, async (req, res) => {
   const planetID = req.params.id
   const updatedData = req.body
+  const username = req.user?.username as string
 
   const updatedPlanet = await prisma.planets.update({
     where: {id: +planetID},
-    data: {...updatedData}
+    data: {...updatedData, updatedBy: username}
   })
 
   res.json(updatedPlanet)
 })
 
-router.delete("/:id",async (req, res) => {
+router.delete("/:id",checkAuthorization, async (req, res) => {
   const planetID = +req.params.id
   const deletedPlanet = await prisma.planets.delete({
     where: {id: planetID}
@@ -53,7 +57,7 @@ router.delete("/:id",async (req, res) => {
   res.json(deletedPlanet)
 })
 
-router.post("/:id(\\d+)/photo", upload.single("photo"), async (req, res, next) => {
+router.post("/:id(\\d+)/photo", checkAuthorization, upload.single("photo"), async (req, res, next) => {
 
   if (!req.file) {
     res.status(400)
